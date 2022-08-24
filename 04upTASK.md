@@ -16,6 +16,7 @@ export {
 }
 
 ~~~
+-----
 
 - usuarioRoutes.js
 ~~~js
@@ -39,6 +40,7 @@ const confirmar = async(req, res)=>{
     console.log(req.params.token)
 }
 ~~~
+-----
 
 - Extraigo con desestructuración el token
 - De nuevo uso el método findOne y le paso el token
@@ -50,6 +52,7 @@ const confirmar = async(req, res)=>{
     console.log(usuarioConfirmar)
 }
 ~~~
+-----
 - Si ahora pongo el token que copio de Compass de uno de los usuarios me imprime en consola el usuario con su id, token y todo
 - Manejo el error en el controller.
 
@@ -64,6 +67,7 @@ const confirmar = async(req, res)=>{
     }
 }
 ~~~
+-----
 - Uso un try catch una vez tengo confirmado el usuario
     - confirmado pasa a ser true
     - Cómo va a ser un token de un solo uso lo elimino con un string vacío
@@ -91,6 +95,7 @@ const confirmar = async(req, res)=>{
 }
 
 ~~~
+-----
 # Resetear Passwords
 - No se puede revertir la cadena hasheada. Para resetear el password habrá que hacer el proceso con un nuevo token
 - Añado el endpoint de 'olvide-password'. Es de tipo POST porque el usuario va a enviar su email, y se va a comprobar que ese mail exista ye sté confirmado
@@ -172,6 +177,7 @@ router.route('/olvide-password/:token').get(comprobarToken).post(nuevoPassword)
 
 export default router
 ~~~
+-----
 - Extraigo el token de la url con req.params y el password del body con req.body
 - usuarioController.js
 ~~~js
@@ -183,6 +189,7 @@ const nuevoPassword= async (req,res)=>{
     console.log(password)
 }
 ~~~
+-----
 - Ahora si voy a POSTMAN con el endpoint con un token válido me aparece en consola el token y el password que envio desde el body en POSTMAN
 - Copio y pego el mismo código de tokenValido pero lo cambio por la variable usuario
 
@@ -202,6 +209,7 @@ const nuevoPassword= async (req,res)=>{
    
 }
 ~~~
+-----
 
 - Ahora si le doy al send en POSTMAN me aparece el usuario en consola ( por el console.log ). Está todo bien
 - Entonces, reescribo el password con el req.body
@@ -229,6 +237,7 @@ const nuevoPassword= async (req,res)=>{
 }
 
 ~~~
+-----
 - Es mejor ponerlo dentro de un try catch
 
 ~~~js
@@ -259,6 +268,7 @@ const nuevoPassword= async (req,res)=>{
 }
 
 ~~~
+-----
 # Comenzando un custom middleware
 
 - Hay zonas que son públicas pero hay zonas que requieren estar autenticado
@@ -282,6 +292,7 @@ router.get('/perfil', checkAuth, perfil)
 
 export default router
 ~~~
+-----
 - Si ahora hago una petición get a /perfil desde POSTMAN me devuelve "desde checkAuth" pero no aparece lo del controlador que es "desde perfil"
 - checkAuth toma req, res pero también next, que permite pasar al siguiente middleware
 - checkAuth
@@ -307,6 +318,7 @@ const checkAuth = (req, res, next)=>{
 
 export default checkAuth
 ~~~
+-----
 - Este console.log da undefined. Usualmente es en los headers dónde se va a enviar el JWT. Los headers es lo que se envia primero
 - EN POSTMAN hay una pestañita que dice autorization. Añado Bearer Token y en la pestañita añado el token que consigo en POSTMAN haciendo un request a /login
 - Ahora puedo ver en consola que tengo Bearer a la izquierda y el token a la derecha. Me interesa solo la derecha
@@ -329,6 +341,7 @@ const checkAuth = (req, res, next)=>{
 
 export default checkAuth
 ~~~
+-----
 
 - Importo la librería de jwt que me permite verificar( descifrar ) el JSONWebToken
 - Como segundo parametro le paso la misma variable de entorno que usé para generar el salt
@@ -355,6 +368,7 @@ const checkAuth = (req, res, next)=>{
 
 export default checkAuth
 ~~~
+-----
 - Transformo en async la función para usar el await
 - El JWT tiene el id del usuario, 
 - Importo el Usuario de models.
@@ -383,6 +397,7 @@ const checkAuth = async (req, res, next)=>{
 
 export default checkAuth
 ~~~
+-----
 - Si hago la petición GET con el TOKEN de autenticación el console.log de req.usuario me devuelve algo asi
 ~~~
 {
@@ -397,6 +412,7 @@ export default checkAuth
   __v: 0
 }
 ~~~
+-----
 - Para eliminar el password uso select en req.usuario
 
 ~~~js
@@ -423,6 +439,7 @@ const checkAuth = async (req, res, next)=>{
     next()
 }
 ~~~
+-----
 
 - Le coloco return next( ) porque una vez que se verificó el JWT y se le asignó al req paso al siguiente middleware
 - Si no hay un token pasaré un nuevo error

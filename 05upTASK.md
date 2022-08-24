@@ -253,40 +253,201 @@ app.listen(PORT, ()=>{
 }
 ~~~
 ------
-
 - El usuario debe de estar autenticado para la petición, asi que debo abrir auth, bearer Token y colocarle el token
-
+- Ahora puedo ver gracias al console.log de req.body en NuevoProyecto(), el json que he escrito en POSTMAN en consola
+- A NuevoProyecto le puedo añadir un console.log(req.usuario) porque tengo un usuario autenticado con el checkAuth
+- Importo Proyecto de /models
+- Creo una nueva instancia de proyecto con el req.body
 ~~~js
-import jwt from 'jsonwebtoken'
-import Usuario from '../models/Usuario.js';
+const nuevoProyecto= async (req,res)=>{
+    const proyecto= new Proyecto(req.body)
+    proyecto.creador= req.usuario._id
+}
+~~~
+- Una vez almacenado voy a regresar el proyecto almacenado. Uso un try y un catch
+~~~js
+const nuevoProyecto= async (req,res)=>{
+    const proyecto= new Proyecto(req.body)
+    proyecto.creador= req.usuario._id
 
-const checkAuth = async (req, res, next)=>{
-    let token;
-    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
-        try {
-            token = req.headers.authorization.split(' ')[1]
-            console.log(token)
-            const decoded= jwt.verify(token, process.env.JWT_SECRET)
-            req.usuario= await Usuario.findById(decoded.id).select("-password -confirmado -token -createdAt -updatedAt  -__v")
-        
-            return next()
-
-        } catch (error) {
-            return res.status(404).json({msg: "Hubo un error"})
-            
-        }
+    try {
+        const proyectoAlmacenado = await proyecto.save()
+        res.json(proyectoAlmacenado)
+    } catch (error) {
+        console.log(error)
     }
-    if(!token){
-        const error = new Error("Token no válido")
-        return res.status(404).json({msg: error.message})
-    }
-
-    next()
 }
 
-export default checkAuth
+~~~
+-----
+- Esto crea el proyecto en la DB. el resto de info que no agregué en el body de POSTMAN lo agrega express por su cuenta
+- Genero un nuevo token de otro usuario con autenticar usuario y lo uso como auth en POSTMAN para publicar un nuevo proyecto que pongo en formato json en el body/raw/json de POSTMAN. Añado nombre, descripción y cliente
+# Obtener los proyectos de los usuarios autenticados
+
+- En POSTMAN hago una petición GET a /proyectos, el endpoint de obtenerProyectos en proyectosRouter. Debo hacerlo con la autorización TOKEN
+- Escribo en la función del controller obtenerProyectos
+~~~js
+const obtenerProyectos= async(req,res)=>{
+   const proyectos = await Proyecto.find()
+   res.json(proyectos)
+}
+~~~
+- Me trae todos los proyectos. Tiene que traer sólo los del usuario que ha realizado la petición (autenticado)
+- En todos los endpoints que tienen el checkAuth como middleware dispongo de req.usuario para identificar que usuario esta autenticado
+- Puedo hacer una consulta con mongoose algo más avanzada
+~~~js
+const obtenerProyectos= async(req,res)=>{
+   const proyectos = await Proyecto.find().where('creador').equals(req.usuario)
+   res.json(proyectos)
+}
+~~~
+# Obtener y validar un proyecto por su ID
+- Con el id de proyecto ( que puedo consultar en Compass ) es con lo que voy a hacer la consulta desde el endpoint
+- Cómo tiene router dinámico, accedo con req.params haciendo desestructuración
+~~~js
+const obtenerProyecto=async(req,res)=>{
+    const {id} = req.params
+    console.log(id)
+}
+
+~~~
+- Le añado un console.log para comprobar que extraigo el id. Hago la consulta GET en POSTMAN con el id de una tarea en el endpoint
+- Uso el método findById y manejo el error
+~~~js
+const obtenerProyecto=async(req,res)=>{
+    const {id} = req.params
+    const proyecto = await Proyecto.findById(id)
+    
+    if(!proyecto){
+        return res.status(404).json({msg:"No encontrado"})
+    }
+
+    res.json(proyecto)
+}
+~~~
+------
+## NOTA: el código de if(!proyecto) da error. Se corrige más adelante en la parte del FRONTEND
+- Si comparo proyecto.creador === req.usuario._id me da false. Incluso si uso solo ==. Debo transformar los dos a string
+- Hago una comparación para confirmar si el creador coincide con el id del usuario
+~~~js
+const obtenerProyecto=async(req,res)=>{
+    const {id} = req.params
+    const proyecto = await Proyecto.findById(id)
+    
+    if(!proyecto){
+          const error= new Error("No encontrado")
+        return res.status(404).json({msg: error.message})
+    }//DA ERROR
+
+   if(proyecto.creador.toString() !== req.usuario._id.toString()){
+        const error = new Error("No tienes los permisos. Acción no válida")
+        return res.status(401).json({msg: error.message})
+    }
+    res.json(proyecto)
+}
+~~~
+-----
+
+# Editar un proyecto
+
+- Ahora apunto con POSTMAN con un PUT al proyectos/id_del_proyecto 
+- En la función editarProyecto tengo las mismas medidas de seguridad que en obtenerProyecto. Copio y pego
+- Voy al body/raw/json para escribir el cuerpo de la actualización en POSTMAN
+~~~js
+const editarProyecto = async(req, res)=>{
+    const {id} = req.params
+    const proyecto = await Proyecto.findById(id)
+    
+    if(!proyecto){
+        const error= new Error("No encontrado")
+        return res.status(404).json({msg: error.message})
+    }
+    if(proyecto.creador.toString() !== req.usuario._id.toString()){
+        const error = new Error("No tienes los permisos. Acción no válida")
+        return res.status(401).json({msg: error.message})
+    }
+    
+}
+~~~
+----
+- Si llego hasta proyecto es que pasó todas las validaciones
+- Compongo para editar
+~~~js
+const editarProyecto = async(req, res)=>{
+    const {id} = req.params
+    const proyecto = await Proyecto.findById(id)
+    
+    if(!proyecto){
+        const error= new Error("No encontrado")
+        return res.status(404).json({msg: error.message})
+    }
+    if(proyecto.creador.toString() !== req.usuario._id.toString()){
+        const error = new Error("No tienes los permisos. Acción no válida")
+        return res.status(401).json({msg: error.message})
+    }
+
+    proyecto.nombre      = req.body.nombre || proyecto.nombre
+    proyecto.descripcion = req.body.descripcion || proyecto.descripcion
+    proyecto.fechaEntrega= req.body.fechaEntrega || proyecto.fechaEntrega
+    proyecto.cliente     = req.body.cliente || proyecto.cliente
+    
+}
+~~~
+------
+- Después uso un try catch para el producto almacenado
+~~~js
+const editarProyecto = async(req, res)=>{
+    const {id} = req.params
+    const proyecto = await Proyecto.findById(id)
+    
+    if(!proyecto){
+        const error= new Error("No encontrado")
+        return res.status(404).json({msg: error.message})
+    }
+    if(proyecto.creador.toString() !== req.usuario._id.toString()){
+        const error = new Error("No tienes los permisos. Acción no válida")
+        return res.status(401).json({msg: error.message})
+    }
+
+    proyecto.nombre = req.body.nombre || proyecto.nombre
+    proyecto.descripcion = req.body.descripcion || proyecto.descripcion
+    proyecto.fechaEntrega= req.body.fechaEntrega || proyecto.fechaEntrega
+    proyecto.cliente = req.body.cliente || proyecto.cliente
+    
+    try {
+        const proyectoAlmacenado = await proyecto.save()
+        res.json(proyectoAlmacenado)
+    } catch (error) {
+        
+    }
+}
+~~~
+-----
+# Eliminar un proyecto
+- Las consideraciones son las mismas. Leer el parámetro, identificar el proyecto por id y que el creador coincida con el usuario que loquiere borrar
+- Uso el metodo deleteOne( ) de mongoose en un try catch
+~~~js
+const eliminarProyecto = async(req,res)=>{
+    const {id} = req.params
+    const proyecto = await Proyecto.findById(id)
+    
+    if(!proyecto){
+        const error= new Error("No encontrado")
+        return res.status(404).json({msg: error.message})
+    }
+    if(proyecto.creador.toString() !== req.usuario._id.toString()){
+        const error = new Error("No tienes los permisos. Acción no válida")
+        return res.status(401).json({msg: error.message})
+    }
+
+    try {
+        await proyecto.deleteOne()
+        res.json({msg: "Proyecto eliminado"})
+    } catch (error) {
+        
+    }
+
+}
 ~~~
 
-----
-- Ahora puedo ver gracias al console.log de req.body en NuevoProyecto(), el json que he escrito en POSTMAN en consola
-- Importo Proyecto de /models a proyectoController
+

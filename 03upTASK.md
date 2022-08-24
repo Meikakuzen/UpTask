@@ -140,6 +140,7 @@ router.post('/login', autenticar)
 export default router
 
 ~~~
+----
 - Este 'login' lo suma al /api/usuarios que tengo en el index.js
 ~~~js
 import express from 'express'
@@ -168,6 +169,7 @@ app.listen(PORT, ()=>{
     console.log(`Servidor corriendo en el puerto ${PORT}`)
 })
 ~~~
+-----
 
 
 
@@ -201,6 +203,7 @@ const autenticar =async (req, res)=>{
 }
 
 ~~~
+-----
 - Ahora hay que comprobar si el usuario está confirmado. Es un código muy parecido al anterior. Como es un objeto, uso la notación de punto
 
 ~~~js
@@ -259,6 +262,7 @@ const autenticar =async (req, res)=>{
     
 }
 ~~~
+-----
 ### NOTA: debo cambiar la cuenta a confirmada en COMPASS para que el endpoint a login en POSTMAN funcione
 
 - Para obtener una mejor respuesta en postman cuando el password es correcto, la formateo
@@ -290,6 +294,7 @@ const autenticar =async (req, res)=>{
     
 }
 ~~~
+----
 # Cómo generar un JSON WEB TOKEN
 
 
@@ -324,6 +329,7 @@ const generarJWT =()=>{
 export default generarJWT
 
 ~~~
+-----
 
 - Uso POSTMAN para visualizar en la respuesta el token. Puedo copiarlo y pegarlo en la web JWT para ver la info en el JWT
 - Lo que me interesa es incluir el id.

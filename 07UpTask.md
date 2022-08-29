@@ -678,5 +678,340 @@ const handleSubmit= async (e)=>{
   }
 }
 ~~~
+-------
 - Las rutas deben de estar ocultas en variables de entorno
 # Instalando y configurando NodeMailer
+> npm i nodemailer
+- Usaré mailtrap. En integrations pongo nodeMailer y copio la configuración de smtp ( no la pongo aqui por seguridad )
+- Creo un archivo en helpers llamado emails, con una función de flecha llamada emailRegistro
+- emails.js:
+~~~js
+import nodemailer from 'nodemailer'
+
+export const emailRegistro = (datos)=>{
+
+}
+~~~
+- Importo esta función en el controlador
+- Voy a la función de registrar, que es donde tengo usuario con token e email
+- Le coloco un console.log(usuarioAlmacenado)
+~~~js
+const registrar = async (req,res)=>{
+
+    const {email} = req.body
+    const existeUsuario =  await Usuario.findOne({email})
+
+    if(existeUsuario){
+        const error = new Error('Usuario ya registrado');
+        return res.status(400).json({msg:error.message})
+    }
+    
+    try {
+        const usuario = new Usuario(req.body)
+        usuario.token= generarId()
+        
+        const usuarioAlmacenado= await usuario.save()
+        
+        //Enviar email de confirmacion
+        console.log(usuarioAlmacenado)
+
+        res.json({msg:"Usuario creado correctamente! Revisa tu mail"})
+
+        
+
+    } catch (error) {
+        console.log(error)
+    }
+
+
+}
+~~~
+-------
+- Puedo ver por el console.log que me devuelve el usuario completo. Necesito el nombre y el token
+- En lugar de un console.log mando los datos en un objeto como parametro de emailRegistro
+~~~js
+const registrar = async (req,res)=>{
+
+    const {email} = req.body
+    const existeUsuario =  await Usuario.findOne({email})
+
+    if(existeUsuario){
+        const error = new Error('Usuario ya registrado');
+        return res.status(400).json({msg:error.message})
+    }
+    
+    try {
+        const usuario = new Usuario(req.body)
+        usuario.token= generarId()
+        
+        const usuarioAlmacenado= await usuario.save()
+        
+        //Enviar email de confirmacion
+        emailRegistro({
+            nombre: usuario.nombre,
+            email: usuario.email,
+            token: usuario.token
+        })
+
+        res.json({msg:"Usuario creado correctamente! Revisa tu mail"})
+
+        
+
+    } catch (error) {
+        console.log(error)
+    }
+
+
+}
+~~~
+- Para comprobar que todo va bien, puedo ponerle un console.log(datos) en emailRegistro
+- Ahora puedo ver nombre, email y token
+# Enviando el email de bienvenida
+- Extraigo el email, el nombre y el token en la funcion emailregistro
+- Copio y pego la configuración de mailtrap que hay en el inbox como SMTP Settings, con el Integrations en nodeMailer, dentro de la función
+  - A esto se le conoce como transport. Habrá que guardar en variables de entorno el user y el pass
+- Creo la función para enviar el email, y con un template literal armo el cuerpo del mensaje
+  - Primero el from (de quién) , luego el to( a quien ), el subject ( el asunto ), el text y el html
+  - en el html añado la url del frontend, el endpoint de confirmar y le paso el token en la url para poder leerlo despues
+- debajo de la configuración del transport, en la misma función de emailRegistro:
+~~~js
+  const info = await transport.sendMail({
+        from:"UpTask -  Administrador de Proyectos",
+        to: email,
+        subject: "UpTask - Comprueba tu cuenta",
+        text: "Comprueba tu cuenta en UpTask",
+        html:` <p>Hola, ${nombre}. Comprueba tu cuenta en UpTask</p>
+        <p>Tu cuenta ya esta casi lista. Sólo debes comprobarla en el siguiente enlace</p>
+        <a href="${process.env.FRONTEND_URL}/confirmar/${token}">Comprobar Cuenta</a>
+        <p>Si tu no creaste esta cuenta puedes eliminar este mensaje </p>
+        `
+      })
+~~~
+-----
+- En la variable de entorno FRONTEND_URL en .env tengo la direccion del server del front-end ( lo que puse en la whitelist del cors)
+- Hay que guardarlo en una variable de entrono, igual que la del backend ( CAPITULO 416 )
+- asi queda emailRegistro
+~~~js
+import nodemailer from 'nodemailer'
+
+export const emailRegistro = async(datos)=>{
+    const {email, nombre, token} = datos;
+
+      //copy past de mailtrap, lo he pasado a variables de entorno
+    const transport = nodemailer.createTransport({
+        host: process.env.HOST_SMTP,
+        port: process.env.PORT_SMTP,
+        auth: {
+          user: process.env.USER_SMTP,
+          pass: process.env.PASS_SMTP
+        }
+      });
+
+      //información del email
+
+      const info = await transport.sendMail({
+        from:"UpTask -  Administrador de Proyectos",
+        to: email,
+        subject: "UpTask - Comprueba tu cuenta",
+        text: "Comprueba tu cuenta en UpTask",
+        html:` <p>Hola, ${nombre}. Comprueba tu cuenta en UpTask</p>
+        <p>Tu cuenta ya esta casi lista. Sólo debes comprobarla en el siguiente enlace</p>
+        <a href="${process.env.FRONTEND_URL}/confirmar/${token}">Comprobar Cuenta</a>
+        <p>Si tu no creaste esta cuenta puedes eliminar este mensaje </p>
+        `
+
+      })
+}
+~~~
+-----
+# Confirmar Cuenta
+- Importo useEffect y useState en confirmarCuenta.jsx
+- useEffect pq voy a leer la url y se requiere que el código se ejecute una vez y enviar una petición
+- Importo también useParams y Link de react-router-dom.
+- Importo axios
+- Importo la alerta
+----
+- Gracias al id dinámico en la ruta de confirmar/:id se puede extraer con useParams y hacer el match 
+~~~js
+import {useState, useEffect} from 'react'
+import {useParams, Link} from 'react-router-dom'
+import axios from 'axios'
+import Alerta from '../components/Alerta'
+
+const ConfirmarCuenta = () => {
+
+  const params = useParams()
+  console.log(params)
+
+  return (
+    <>
+    <h1 className="text-sky-600 font-black text-6xl">Confirma tu cuenta y crea tus  
+    <span className="text-slate-700"> Proyectos</span></h1>
+  </>
+  )
+}
+
+export default ConfirmarCuenta
+~~~
+----
+- Puedo observar gracias al console.log que me devuelve el :id ( el token ) en un objeto
+- hago destructuring para extraer el id
+- Hay que enviar el mismo endpoint al backend, para eso usaré el useEffect, porque requiero comprobar eso cuando el componente cargue y una sola vez
+
+~~~js
+import {useState, useEffect} from 'react'
+import {useParams, Link} from 'react-router-dom'
+import axios from 'axios'
+import Alerta from '../components/Alerta'
+
+const ConfirmarCuenta = () => {
+
+  const params = useParams()
+  
+  const {id} = params
+  useEffect(()=>{
+    const confirmarCuenta= async()=>{
+      try {
+        const url=`http://localhost:4000/api/usuarios/confirmar/${id}`
+        const {data}= await axios(url)
+
+        console.log(data)
+        
+      } catch (error) {
+        console.log(error)
+      }
+    }
+  }, [])
+
+  return (
+    <>
+    <h1 className="text-sky-600 font-black text-6xl">Confirma tu cuenta y crea tus  
+    <span className="text-slate-700"> Proyectos</span></h1>
+  </>
+  )
+}
+
+export default ConfirmarCuenta
+~~~
+----
+- Cómo es una petición get pongo solo axios. En el error habrá que debuggearlo mejor que con un console.log
+- Si miro en Compass ha hecho lo que se detalla en el usuarioController, que es borrar el token y volver la cuenta a true. Da error porque lo hace dos veces (error de código) pero está funcionando
+- Creo el state en confirmar cuenta para mostrar la alerta
+~~~js
+import {useState, useEffect} from 'react'
+import {useParams, Link} from 'react-router-dom'
+import axios from 'axios'
+import Alerta from '../components/Alerta'
+
+const ConfirmarCuenta = () => {
+
+  const params = useParams()
+  
+  const {id} = params
+
+  const [alerta,setAlerta] = useState({})
+
+  useEffect(()=>{
+
+    const confirmarCuenta= async()=>{
+      try {
+        const url=`http://localhost:4000/api/usuarios/confirmar/${id}`
+        const {data}= await axios(url)
+
+        setAlerta({
+          msg: data.msg,
+          error: false
+        })
+        
+      } catch (error) {
+       
+        setAlerta({
+          msg: error.response.data.msg,
+          error: true
+        })
+        
+      }
+    }
+    confirmarCuenta()
+  }, [])
+
+  const {msg} = alerta
+
+  return (
+    <>
+    <h1 className="text-sky-600 font-black text-6xl">Confirma tu cuenta y crea tus  
+    <span className="text-slate-700"> Proyectos</span></h1>
+
+    <div>
+      {msg && <Alerta alerta={alerta} />}
+    </div>
+  </>
+  )
+}
+
+export default ConfirmarCuenta
+~~~
+-----
+- Creo otro state para renderizar un link de forma condicional para iniciar sesión
+~~~js
+import {useState, useEffect} from 'react'
+import {useParams, Link} from 'react-router-dom'
+import axios from 'axios'
+import Alerta from '../components/Alerta'
+
+const ConfirmarCuenta = () => {
+
+  const params = useParams()
+  
+  const {id} = params
+
+  const [alerta,setAlerta] = useState({})
+
+  const [cuentaConfirmada, setCuentaConfirmada] = useState(false)
+
+  useEffect(()=>{
+
+    const confirmarCuenta= async()=>{
+      try {
+        const url=`http://localhost:4000/api/usuarios/confirmar/${id}`
+        const {data}= await axios(url)
+
+        setAlerta({
+          msg: data.msg,
+          error: false
+        })
+        setCuentaConfirmada(true)
+        
+      } catch (error) {
+       
+        setAlerta({
+          msg: error.response.data.msg,
+          error: true
+        })
+        
+      }
+    }
+    confirmarCuenta()
+  }, [])
+
+  const {msg} = alerta
+
+  return (
+    <>
+    <h1 className="text-sky-600 font-black text-6xl">Confirma tu cuenta y crea tus  
+    <span className="text-slate-700"> Proyectos</span></h1>
+
+    <div>
+      {msg && <Alerta alerta={alerta} />}
+
+      {cuentaConfirmada && 
+       <Link to="/" className="block text-slate-500 text-center my-5">Iniciar sesión</Link>}
+    </div>
+  </>
+  )
+}
+
+export default ConfirmarCuenta
+~~~
+----
+# Primeros pasos reestablecer password: next

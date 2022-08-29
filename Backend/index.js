@@ -12,6 +12,7 @@ dotenv.config()
 app.use(express.json())
 
 conectarDB()
+//app.use(cors())
 
 //Configurar CORS
 const whitelist = ["http://127.0.0.1:5173"];

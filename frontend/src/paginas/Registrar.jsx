@@ -55,7 +55,7 @@ const Registrar = () => {
     
   } catch (error) {
     setAlerta({
-      msg: error.response.data.msg,
+      msg: error.response.data,
       error: true
     })
   }

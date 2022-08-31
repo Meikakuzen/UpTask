@@ -26,4 +26,33 @@ export const emailRegistro = async(datos)=>{
         `
 
       })
-}
+    }    
+
+    export const emailOlvidePassword = async(datos)=>{
+      const {email, nombre, token} = datos;
+  
+      const transport = nodemailer.createTransport({
+          host: process.env.HOST_SMTP,
+          port: process.env.PORT_SMTP,
+          auth: {
+            user: process.env.USER_SMTP,
+            pass: process.env.PASS_SMTP
+          }
+        });
+  
+        //información del email
+        const info = await transport.sendMail({
+          from:"UpTask -  Administrador de Proyectos",
+          to: email,
+          subject: "UpTask - Reestablece tu password",
+          text: "Reestablece tu password en UpTask",
+          html:` <p>Hola, ${nombre}. Has solicitado resetear tu password</p>
+          <p>Sigue el siguiente enlace para reestablecer tu password</p>
+          <a href="${process.env.FRONTEND_URL}/olvide-password/${token}">Reestablecer password</a>
+          <p>Si este mensaje no es para ti puedes eliminarlo </p>
+          `
+  
+        })
+      }    
+  
+  

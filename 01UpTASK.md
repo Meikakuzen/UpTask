@@ -3,6 +3,7 @@
 - Creo el servidor.
 - Para ello creo una carpeta Backend y en el directorio escribo en la terminal npm init
 - Instalo express (ya tengo instalado nodemon)
+- Para habilitar imports en node añadir "type":"module" debajo de "version" en package.json
 - El código del servidor inicialmente luce así:
 
 ~~~js
@@ -15,12 +16,15 @@ app.listen(4000, ()=>{
     console.log("Servidor corriendo en el puerto 4000")
 })
 ~~~
+----
 ## Creando base de datos
+
 - Crear el cluster en mongoDB
-- Copiar el enlace de conexión con MongoCompass
+- Copiar el enlace de "conexión con MongoCompass"
 - Añadirlo a la conexión de Compass con el username y el password
 ## Conectar la base de datos
-- Ahora copio el string de conexión de la web para conectar con la aplicación
+
+- Ahora copio el string de conexión de la web de MongoDB para conectar con la aplicación
 - Creo la carpeta en backend de config con el archivo db.js
 - Instalo mongoose
 - En db.js importo mongoose y creo una función async llamada conectarDB con mongoose.connect
@@ -80,8 +84,8 @@ export default conectarDB
 - Instalo en backend dotenv para configurar las variables de entorno
 > npm i dotenv 
 - Lo importo en index.js y escribo dotenv.config()
-- Esto va a buscar el archivo .env. Lo creo
-- Escribo la variable MONGO_URI con el string de conexión sin comillas
+- Esto va a buscar el archivo .env. Creo el archivo .env en la raíz del backend 
+- Escribo la variable MONGO_URI con el string de conexión sin comillas como variable de entorno
 - Sustituyo el string de conexión en db.js por process.env.MONGO_URI
 - Creo otra variable de entorno para el puerto
 

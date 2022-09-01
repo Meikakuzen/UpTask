@@ -32,8 +32,8 @@ router.get('/confirmar/:token', confirmar)
 export default router
 ~~~
 ---
-- Si ahora en POSTMAN pongo el endpoint confirmar/20 me devuelve en consola Routing dinámico
-- Para extraer los datos de la url uso req.params
+- Si ahora en POSTMAN pongo el endpoint confirmar/20 me devuelve en consola "Routing dinámico"
+- Para extraer los datos de la url uso req.params.token (gracias al routing dinámico)
 
 ~~~js
 const confirmar = async(req, res)=>{
@@ -53,7 +53,7 @@ const confirmar = async(req, res)=>{
 }
 ~~~
 -----
-- Si ahora pongo el token que copio de Compass de uno de los usuarios me imprime en consola el usuario con su id, token y todo
+- Si ahora pongo el token que copio de la DB de uno de los usuarios me imprime en consola el usuario con su id, token y todo
 - Manejo el error en el controller.
 
 ~~~js
@@ -61,6 +61,7 @@ const confirmar = async(req, res)=>{
     const {token} = req.params
 
     const usuarioConfirmar = await Usuario.findOne({token})
+    
     if(!usuarioConfirmar){
         const error = new Error("Token no válido")
         return res.status(404).json({msg: error.message})
@@ -78,6 +79,7 @@ const confirmar = async(req, res)=>{
     const {token} = req.params
 
     const usuarioConfirmar = await Usuario.findOne({token})
+    
     if(!usuarioConfirmar){
         const error = new Error("Token no válido")
         return res.status(404).json({msg: error.message})
@@ -97,8 +99,9 @@ const confirmar = async(req, res)=>{
 ~~~
 -----
 # Resetear Passwords
+
 - No se puede revertir la cadena hasheada. Para resetear el password habrá que hacer el proceso con un nuevo token
-- Añado el endpoint de 'olvide-password'. Es de tipo POST porque el usuario va a enviar su email, y se va a comprobar que ese mail exista ye sté confirmado
+- Añado el endpoint de 'olvide-password'. Es de tipo POST porque el usuario va a enviar su email, y se va a comprobar que ese mail exista y esté confirmado
 - usuarioRoutes.js
 ~~~js
 const router = express.Router()
@@ -113,8 +116,9 @@ router.post('/olvide-password', olvidePassword )
 
 export default router
 ~~~
+------
 - Creo la función olvidePassword en usuarioController
-- Copio y pego el código para confirmar usuario
+- Copio y pego el código (escrito previamente en autenticar) para confirmar que el usuario existe 
 - Añado el endpoint a POSTMAN
 - En caso de que el usuario exista lo manejo con un try catch
 - Genero un nuevo token con generarId
@@ -122,8 +126,10 @@ export default router
 ~~~js
 const olvidePassword = async (req,res)=>{
     const {email} = req.body
-    const usuario = await Usuario.findOne({email})
-    if(!usuario){
+   
+   const usuario = await Usuario.findOne({email})
+   
+   if(!usuario){
         const error = new Error("El usuario no existe")
         return res.status(404).json({msg: error.message})
     }
@@ -133,7 +139,7 @@ const olvidePassword = async (req,res)=>{
         res.json({msg: "Hemos enviado un email con las instrucciones"})
         
     } catch (error) {
-        
+        console.log(error)
     }
 
 }
@@ -149,12 +155,14 @@ const olvidePassword = async (req,res)=>{
 ~~~js
 const comprobarToken = async(req, res)=>{
     const {token} = req.params
-    const tokenValido = await Usuario.findOne({token})
+   
+   const tokenValido = await Usuario.findOne({token})
 
     if(tokenValido){
         res.json({msg:"Token válido, el usuario existe"})
     }else{
         const error = new Error("Token no válido")
+        
         return res.status(404).json({msg: error.message})
     }
 }
@@ -272,7 +280,7 @@ const nuevoPassword= async (req,res)=>{
 # Comenzando un custom middleware
 
 - Hay zonas que son públicas pero hay zonas que requieren estar autenticado
-- Creo una carpeta llamada middleware en /Backend
+- Creo una carpeta llamada middleware en /backend
 - Un middleware es cada linea del archivo index.js, por ejemplo. Va a una, pasa a la siguiente, y a la siguiente
 - Creo el archivo checkAuth.js y dentro del archivo una función que llamaré checkAuth
 - Lo importo en usuarioRoutes
@@ -319,18 +327,22 @@ const checkAuth = (req, res, next)=>{
 export default checkAuth
 ~~~
 -----
-- Este console.log da undefined. Usualmente es en los headers dónde se va a enviar el JWT. Los headers es lo que se envia primero
+- Este console.log da undefined. Usualmente es en los headers dónde se va a enviar el JWT. Los headers es lo que se envia primero. Al enviar el JWT ahi se puede confrimar que todo esté correctamente y se le da acceso al usuario
 - EN POSTMAN hay una pestañita que dice autorization. Añado Bearer Token y en la pestañita añado el token que consigo en POSTMAN haciendo un request a /login
-- Ahora puedo ver en consola que tengo Bearer a la izquierda y el token a la derecha. Me interesa solo la derecha
+- Ahora puedo ver en consola que tengo Bearer a la izquierda y el token a la derecha. Me interesa solo la derecha (el token)
 - Para ello uso split( ) para dividir por espacios en un arreglo y le indico que el token esta en la posición 1
 ~~~js
 const checkAuth = (req, res, next)=>{
     let token;
+    
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
-        try {
+       
+       try {
             token = req.headers.authorization.split(' ')[1]
+          
             console.log(token)
-        } catch (error) {
+       
+       } catch (error) {
             console.log(error)
             
         }
@@ -351,12 +363,15 @@ import jwt from 'jsonwebtoken'
 
 const checkAuth = (req, res, next)=>{
     let token;
-    if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
-        try {
+   
+   if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
+       
+       try {
             token = req.headers.authorization.split(' ')[1]
             
             const decoded= jwt.verify(token, process.env.JWT_SECRET)
             console.log(decoded)
+
         } catch (error) {
               return res.status(404).json({msg: "Hubo un error"})
             
@@ -373,6 +388,7 @@ export default checkAuth
 - El JWT tiene el id del usuario, 
 - Importo el Usuario de models.
 - Agrego una nueva variable en el req. y le paso al método findById decoded.id, porque es lo que está extrayendo del token en decoded
+
 ~~~js
 import jwt from 'jsonwebtoken'
 import Usuario from '../models/Usuario.js';
@@ -381,13 +397,20 @@ const checkAuth = async (req, res, next)=>{
     let token;
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
         try {
+            
             token = req.headers.authorization.split(' ')[1]
+            
             console.log(token)
-            const decoded= jwt.verify(token, process.env.JWT_SECRET)
+           
+           const decoded= jwt.verify(token, process.env.JWT_SECRET)
+            
             req.usuario= await Usuario.findById(decoded.id)
+            
             console.log(req.usuario)
+        
         } catch (error) {
-            return res.status(404).json({msg: "Hubo un error"})
+           
+           return res.status(404).json({msg: "Hubo un error"})
             
         }
     }
@@ -413,21 +436,29 @@ export default checkAuth
 }
 ~~~
 -----
-- Para eliminar el password uso select en req.usuario
+- Para eliminar el password y otros campos uso select en req.usuario
+- Importante el next( ) para pasar al siguiente middleware
 
 ~~~js
 const checkAuth = async (req, res, next)=>{
     let token;
+    
     if(req.headers.authorization && req.headers.authorization.startsWith('Bearer')){
+        
         try {
             token = req.headers.authorization.split(' ')[1]
+            
             console.log(token)
+            
             const decoded= jwt.verify(token, process.env.JWT_SECRET)
-            req.usuario= await Usuario.findById(decoded.id).select("-password -confirmado -token -createdAt -updatedAt  -__v")
+           
+           req.usuario= await Usuario.findById(decoded.id).select("-password -confirmado -token -createdAt -updatedAt  -__v")
             
             return next();
-        } catch (error) {
-            return res.status(404).json({msg: "Hubo un error"})
+       
+       } catch (error) {
+           
+           return res.status(404).json({msg: "Hubo un error"})
             
         }
     }
@@ -444,11 +475,12 @@ const checkAuth = async (req, res, next)=>{
 - Le coloco return next( ) porque una vez que se verificó el JWT y se le asignó al req paso al siguiente middleware
 - Si no hay un token pasaré un nuevo error
 - Este middleware verifica el token y da paso a perfil si todo esta bien
-- En el controlador configuro perfil para que me devuelva el usuario
+- En el controlador configuro perfil para que me devuelva el usuario en pantalla en fromato json
 ~~~js
 const perfil =async (req,res)=>{
     const {usuario} = req
-    res.json(usuario)
+   
+   res.json(usuario)
 }
 ~~~
 

@@ -1,6 +1,6 @@
 # Model View Controller
 
-- Creo una nueva carpeta llamada models
+- Creo una nueva carpeta en backend/ llamada models
 - Dentro un archivo llamado Usuario.js
     - Importo mongoose
     - Procedo a estructurar el Schema con mongoose.Schema
@@ -8,7 +8,7 @@
     - Lo mismo con el password, y el mail
     - unique para que el mail sea único
     - Confirmado esta false por defecto porque recibirán un mail de confirmación para confirmar la cuenta
-    - el timestamps para crear dos columnas más , una de creado y otra de actualizado
+    - El timestamps para crear dos columnas más, una de creado y otra de actualizado
     - Creo el modelo con mongoose.model con el nombre del modelo y el Schema y lo hago disponible con el export default
 ~~~js
 import mongoose from 'mongoose'
@@ -49,8 +49,10 @@ export default Usuario
 -----
 
 ## Routing y controladores
-- El siguiente paso es crear el routing y los controladores para los diferentes endpoints para los verbos HTTP
+- El siguiente paso es crear el routing y los controladores para los diferentes endpoints y los verbos HTTP
 - Se hará usando el app ( de const app = express()), pues concentra toda la funcionalidad de express
+- index.js:
+
 ~~~js
 app.get('/', (req,res)=>{
     res.send("Hola mundo!")
@@ -111,8 +113,8 @@ app.listen(PORT, ()=>{
 
 ~~~
 - Al hacerlo de esta forma, todos los request a este endpoint van a estar enun archivo aparte( usuarioRoutes.js )
-- Para probar los endpoints se usará Postman
-- Puedo simular los endpoints y los tipos de verbos con Postman
+- Para probar los endpoints se usará POSTMAN
+- Puedo simular los endpoints y los tipos de verbos con POSTMAN
 - Si lo que quiero es enrutar, puedo usar el primer parametro del router para hacerlo, por ejemplo a confirmar
 ~~~js
 router.get('/confirmar', (req,res)=>{
@@ -223,7 +225,7 @@ export default router
 - Ahora toca trabajar el cuerpo de la función registrar
 - Usaré los valores del Schema, nombre, email y password
 ----
-- Para enviar datos desde POSTMAN simulando que vienen de un formulario pulsa body y en raw cambiar a json (donde pone text)
+- Para enviar datos desde POSTMAN simulando que vienen de un formulario pulsa body y en raw, cambiar a json (donde pone text)
 - Si en el cuerpo de la función registrar pongo un console.log de req.body NO FUNCIONA, no recibe los datos que estoy enviando en formato json desde POSTMAN
 - usuarioController.js:
 ~~~js
@@ -240,8 +242,9 @@ app.use(express.json())
 - Entonces, ya puedo insertarlo en la base de datos
 - Para insertarlo hay que importar el modelo en el controlador
     - Uso el try catch para insertar los datos en la DB dentro de la función registrar
-    - Creo una nueva instancia de Usuario y le paso el req.body
+    - Creo una nueva instancia de Usuario (lo importo) y le paso el req.body, el cuerpo de la petición POST de POSTMAN
     - Puedo colocarle el usuario en un console.log para ver si todo marcha bien
+    - Si no hay una función para finalizar el proceso POSTMAN se queda dando vueltas
 ~~~js
 
 const registrar = (req,res)=>{

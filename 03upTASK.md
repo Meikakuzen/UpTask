@@ -61,6 +61,8 @@ export default Usuario
 
 ~~~
 ------
+
+## Generar ID para un token único
 - Creo una carpeta llamada helpers en /Backend con un archivo llamado generarId
 - Quiero generar un id de manera random.
 - El 32 del toString se le conoce cómo el radix
@@ -120,7 +122,7 @@ export {
 
 ~~~
 ----
-## creando el endpoint de autenticación
+## Creando el endpoint de autenticación
 - Creo un nuevo endpoint con una función aún por definir a la que llamaré autenticar
 ~~~js
 import express from 'express'
@@ -141,50 +143,19 @@ export default router
 
 ~~~
 ----
-- Este 'login' lo suma al /api/usuarios que tengo en el index.js
-~~~js
-import express from 'express'
-import conectarDB from './config/db.js'
-import dotenv from 'dotenv'
-import usuarioRoutes from './routes/usuarioRoutes.js'
-
-const app = express()
-
-dotenv.config()
-app.use(express.json())
-
-conectarDB()
-
-//ROUTING
-
-app.use("/api/usuarios", usuarioRoutes)
-
-
-
-
-
-const PORT = process.env.PORT || 4000
-
-app.listen(PORT, ()=>{
-    console.log(`Servidor corriendo en el puerto ${PORT}`)
-})
-~~~
------
-
-
-
+- Este 'login' lo suma al /api/usuarios que tengo en el index.js, quedando /api/usuarios/login como endpoint
 - Defino la función autenticar en el controlador ( UsuarioController.js )
 
 - Creo el endpoint POST http://localhost:4000/api/usuarios/login en POSTMAN y lo guardo como autenticar usuarios
-- En environments ( a la izquierda ) aprieto + par aañadir un nuevo ambiente ( me permitirá almacenar variables )
+- En environments ( a la izquierda ) aprieto + para añadir un nuevo ambiente ( me permitirá almacenar variables )
 - Lo llamo upTask, ahora a la derecha, cuando voy a colecciones, puedo ver No Environment. Ahí selecciono upTask
 - Para definir una variable, clicar en el ojo de arriba a la derecha y en Edit
 - Otra opción para guardar una variable es seleccionar la url que quieres guardar y aparece automáticamente set as variable
 ----
 # Autenticar 
-- Primero comprobar si el usuario existe
-- Segundo comprobar si el usuario esta confirmado
-- Comprobar el password
+- Primero: comprobar si el usuario existe
+- Segundo: comprobar si el usuario esta confirmado
+- Tercero: comprobar el password
 
 - Para autenticar el usuario voy a enviar en formato JSON con POSTMAN el email y el password
 - En el usuarioController, en la función de autenticar, extraigo con destructuring el email y el password
@@ -226,14 +197,60 @@ const autenticar =async (req, res)=>{
 - Crear una función que compruebe el pàssword en Usuario
 - de nuevo usaré function porque usaré el this
 - En el controlador, dentro de autenticar estoy extrayendo el password, entonces llamaré la función ahi
-- Para comparar los passwords tengo bcrypt.compare, y le paso el dato y el password
+- Para comparar los passwords tengo bcrypt.compare, y le paso el dato y el password al modelo Usuario.js
 
 ~~~js
+import mongoose from 'mongoose'
+import bcrypt from 'bcrypt'
+
+const usuarioSchema = mongoose.Schema({
+    nombre:{
+        type: String,
+        required: true,
+        trim: true
+    },
+    password:{
+        type: String,
+        required: true,
+        trim: true
+    },
+    email:{
+        type: String,
+        required: true,
+        trim: true,
+        unique: true
+    },
+    token:{
+        type: String
+    },
+    confirmado:{
+        type: Boolean,
+        default: false
+    }
+
+},{
+    timestamps: true
+})
+
+
+usuarioSchema.pre('save', async function(next){ 
+   if(!this.isModified('password')){ 
+    next()
+   } 
+    const salt = await bcrypt.genSalt(10) //10 rounds de hasheo son suficientes
+    this.password = await bcrypt.hash(this.password, salt) 
+})
+
 usuarioSchema.methods.comprobarPassword = async function(passwordFormulario){
     return await bcrypt.compare(passwordFormulario, this.password)
 }
-~~~
 
+
+const Usuario = mongoose.model("Usuario", usuarioSchema)
+
+export default Usuario
+~~~
+----
 - En el controlador voy a usar el await, para esperar que se ejecute este método que devuelve true o false
 - Cómo he creado el metodo, puedo usarlo en la instancia del usuario.
 - Cómo el usuario si llega hasta aquí ya está confirmado, entonces tengo acceso a los datos del this.password
@@ -242,19 +259,25 @@ usuarioSchema.methods.comprobarPassword = async function(passwordFormulario){
 ~~~js
 
 const autenticar =async (req, res)=>{
-    const {email, password } = req.body
+   
+   const {email, password } = req.body
+    
     const usuario = await Usuario.findOne({email})
+    
     if(!usuario){
         const error = new Error("El usuario no existe")
         return res.status(404).json({msg: error.message})
     }
+    
     if(!usuario.confirmado){
         const error = new Error("Tu cuenta no ha sido confirmada")
         return res.status(404).json({msg: error.message})
     }
-    if(await usuario.comprobarPassword(password)){
+   
+   if(await usuario.comprobarPassword(password)){
         console.log("Es correcto")
-    }else{
+   
+   }else{
         const error = new Error("El password es incorrecto")
         return res.status(404).json({msg: error.message})
     }
@@ -266,26 +289,32 @@ const autenticar =async (req, res)=>{
 ### NOTA: debo cambiar la cuenta a confirmada en COMPASS para que el endpoint a login en POSTMAN funcione
 
 - Para obtener una mejor respuesta en postman cuando el password es correcto, la formateo
-- El id es con un guión bajo porque así lo maneja mongo
+- El id es con un guión bajo porque así lo maneja Mongo
 ~~~js
 
 const autenticar =async (req, res)=>{
-    const {email, password } = req.body
-    const usuario = await Usuario.findOne({email})
-    if(!usuario){
+   
+   const {email, password } = req.body
+   
+   const usuario = await Usuario.findOne({email})
+   
+   if(!usuario){
         const error = new Error("El usuario no existe")
         return res.status(404).json({msg: error.message})
     }
-    if(!usuario.confirmado){
+  
+  if(!usuario.confirmado){
         const error = new Error("Tu cuenta no ha sido confirmada")
         return res.status(404).json({msg: error.message})
     }
-    if(await usuario.comprobarPassword(password)){
+   
+   if(await usuario.comprobarPassword(password)){
         res.json({
             _id: usuario._id,
             nombre: usuario.nombre,
             email: usuario.email
         })
+    
     }else{
         const error = new Error("El password es incorrecto")
         return res.status(404).json({msg: error.message})
@@ -300,27 +329,27 @@ const autenticar =async (req, res)=>{
 
 - Instalar jsonwebtoken
 > npm i jsonwebtoken
-- En la carpeta helpers creo el file generarJWT.js
+- En la carpeta helpers creo el archivo generarJWT.js
     - Importo jwt 
-    - .sign( ) es un método que permite generar un JWT, de froma sincrona va a firmar el payload que le estas enviando al JWT
+    - .sign( ) es un método que permite generar un JWT, de forma sincrona va a firmar el payload que le estas enviando al JWT
     - Como primer parámetro tiene un objeto (lo que va a colocar en el JWT), como segundo la llave privada se tiene que almacenar en las variables de entorno
-    - Se recomienda poner una cadena compleja. Lo almaceno en .env
+    - Se recomienda poner una cadena compleja. Lo almaceno en .env con JWT_SECRET=??????
     - Como tercer parámetro toma un objeto con opciones
     - expiresIn es cuanto tiempo estará vigente el token. Le pongo 30 días
 - Importo generarJWT en el controller
 - Lo añado a la respuesta que estoy generando
 - .env
 ~~~
-MONGO_URI=mongodb+srv://isma:isma@cluster0.82so450.mongodb.net/?retryWrites=true&w=majority
+MONGO_URI=mongodb+srv://isma:</password>@cluster0.82so450.mongodb.net/?retryWrites=true&w=majority
 
-JWT_SECRET= palabraSECRETA
+JWT_SECRET= XXXXXXXXXX
 ~~~
 - generarJWT
 ~~~js
 import jwt from 'jsonwebtoken'
 
 const generarJWT =()=>{
-    return jwt.sign({nombre: "Juan"}, process.env.JWT_SECRET,{
+    return jwt.sign({nombre: "Maik"}, process.env.JWT_SECRET,{
         expiresIn:'30d'
     })
 
@@ -365,16 +394,20 @@ const registrar = async (req,res)=>{
 }
 
 const autenticar =async (req, res)=>{
+    
     const {email, password } = req.body
     const usuario = await Usuario.findOne({email})
-    if(!usuario){
+   
+   if(!usuario){
         const error = new Error("El usuario no existe")
         return res.status(404).json({msg: error.message})
     }
-    if(!usuario.confirmado){
+   
+   if(!usuario.confirmado){
         const error = new Error("Tu cuenta no ha sido confirmada")
         return res.status(404).json({msg: error.message})
     }
+    
     if(await usuario.comprobarPassword(password)){
         res.json({
             _id: usuario._id,
@@ -382,7 +415,8 @@ const autenticar =async (req, res)=>{
             email: usuario.email,
             token: generarJWT(usuario._id)
         })
-    }else{
+   
+   }else{
         const error = new Error("El password es incorrecto")
         return res.status(404).json({msg: error.message})
     }

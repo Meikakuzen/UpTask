@@ -1,4 +1,4 @@
-# Crear Modelo Tareas
+## Crear Modelo Tareas
 
 - Cada tarea va a estar asociada a un proyecto. Por eso los relaciono y le paso de referencia el modelo de Proyecto
 - Finalmente declaro el modelo y lo exporto por default
@@ -8,7 +8,8 @@ import mongoose from 'mongoose'
 
 
 const tareaSchema = mongoose.Schema({
-    nombre:{
+   
+   nombre:{
         type: String,
         trim: true,
         required: true
@@ -86,12 +87,14 @@ import{
     eliminarTarea,
     cambiarEstado
 } from '../controllers/tareaController.js'
+
 import express from 'express'
 import checkAuth from '../middleware/checkAuth.js'
 
 const router = express.Router()
 
 router.post('/', checkAuth, agregarTarea)
+
 router.route('/:id')
 .get(checkAuth, obtenerTarea)
 .put(checkAuth, actualizarTarea)
@@ -154,6 +157,7 @@ app.listen(PORT, ()=>{
 ~~~js
 
 const agregarTarea = async (req,res)=>{
+    
     const {proyecto} = (req.body)
 
     const existeProyecto = await Proyecto.findById(proyecto)
@@ -165,6 +169,7 @@ const agregarTarea = async (req,res)=>{
 - Manejo el error
 ~~~js
 const agregarTarea = async (req,res)=>{
+    
     const {proyecto} = (req.body)
 
     const existeProyecto = await Proyecto.findById(proyecto)
@@ -172,8 +177,10 @@ const agregarTarea = async (req,res)=>{
     console.log(existeProyecto)
 
     if(!existeProyecto){
-        const error = new Error('El proyecto no existe')
-        await res.status(404).json({msg: error.message})
+        
+       const error = new Error('El proyecto no existe')
+       
+       await res.status(404).json({msg: error.message})
     }
 }
 ~~~
@@ -182,6 +189,7 @@ const agregarTarea = async (req,res)=>{
 ~~~js
 
 const agregarTarea = async (req,res)=>{
+    
     const {proyecto} = (req.body)
 
     const existeProyecto = await Proyecto.findById(proyecto)
@@ -189,13 +197,17 @@ const agregarTarea = async (req,res)=>{
     console.log(existeProyecto)
 
     if(!existeProyecto){
+        
         const error = new Error('El proyecto no existe')
+       
         await res.status(404).json({msg: error.message})
     }
 
     if(existeProyecto.creador.toString() !== req.usuario._id.toString()){
-        const error = new Error("No tienes los permisos adecuados")
-        return res.status(404).json({msg: error.message})
+       
+       const error = new Error("No tienes los permisos adecuados")
+       
+       return res.status(404).json({msg: error.message})
     }
 }
 ~~~
@@ -206,6 +218,7 @@ const agregarTarea = async (req,res)=>{
 
 ~~~js
 const agregarTarea = async (req,res)=>{
+    
     const {proyecto} = (req.body)
 
     const existeProyecto = await Proyecto.findById(proyecto)
@@ -232,8 +245,10 @@ const agregarTarea = async (req,res)=>{
 }
 ~~~
 ----
-- Solo quien creo el proyecto es quien puede añadir tareas. Los colaboradores pueden cambiar el estado de las tareas
-# Obtener una tarea y validación
+- Sólo quien creó el proyecto es quien puede añadir tareas. Los colaboradores pueden cambiar el estado de las tareas
+
+## Obtener una tarea y validación
+
 - Obtener tarea requiere un id
 - En POSTMAN, petición GET al id de la tarea ( recordar el TOKEN válido)
 - Puedo poner un console.log en obtenerTarea para ver si se comunican satisfactoriamente
@@ -241,6 +256,7 @@ const agregarTarea = async (req,res)=>{
 ~~~js
 
 const obtenerTarea = async (req,res)=>{
+    
     const {id} = req.params 
     
     const tarea = await  Tarea.findById(id)
@@ -250,10 +266,12 @@ const obtenerTarea = async (req,res)=>{
 }
 ~~~
 ---
-- Puedo usar .populate para cruzar la información con el proyecto asociado en el schema. De esta forma hago solo una consulta y me devuelve la tarea y el proyecto.
+- Puedo usar .populate para cruzar la información con el proyecto asociado en el Schema. De esta forma hago solo una consulta y me devuelve la tarea y el proyecto.
 ~~~js
 const obtenerTarea = async (req,res)=>{
+    
     const {id} = req.params 
+     
      const tarea = await  Tarea.findById(id).populate("proyecto")
 
      console.log(tarea)
@@ -265,10 +283,13 @@ const obtenerTarea = async (req,res)=>{
 ~~~js
 
 const obtenerTarea = async (req,res)=>{
+    
     const {id} = req.params 
+     
      const tarea = await  Tarea.findById(id).populate("proyecto")
 
      if(tarea.proyecto.creador.toString() !==  req.usuario._id.toString()){
+        
         const error = new Error("No tienes los permisos para acceder a la tarea")
         return res.status(404).json({msg: error.message})
      }
@@ -276,7 +297,7 @@ const obtenerTarea = async (req,res)=>{
 }
 
 ~~~
-- Ahora postman me devuelve algo así
+- Ahora POSTMAN me devuelve algo así
 ~~~js
 {
     "_id": "630622278533b7da996f8ae0",
@@ -306,8 +327,10 @@ const obtenerTarea = async (req,res)=>{
 - Manejo del error si la tarea no existe
 ~~~js
 const obtenerTarea = async (req,res)=>{
+   
     const {id} = req.params 
-     const tarea = await  Tarea.findById(id).populate("proyecto")
+     
+    const tarea = await  Tarea.findById(id).populate("proyecto")
 
      if(!tarea){
          const error = new Error("La tarea no existe o no se encuentra")
@@ -322,7 +345,7 @@ const obtenerTarea = async (req,res)=>{
 }
 ~~~
 ----
-# Actualizar Tarea
+## Actualizar Tarea
 
 - Hay que verificar la tarea, ver si existe, y verificar que el usuario tenga los permisos necesarios
 - En un try catch guardo los cambios de la petición PUT
@@ -330,7 +353,8 @@ const obtenerTarea = async (req,res)=>{
 ~~~js
 const actualizarTarea = async (req,res)=>{
 
-        const {id} = req.params 
+         const {id} = req.params 
+         
          const tarea = await  Tarea.findById(id).populate("proyecto")
     
          if(!tarea){
@@ -361,8 +385,11 @@ const actualizarTarea = async (req,res)=>{
 ~~~
 ---
 - Retorno del servidor la tareaAlmacenada porque luego en el frontEnd lo voy a sincronizar con el state
-# Eliminar Tarea
+
+## Eliminar Tarea
+
 - Las mismas comprobaciones pero se hace la petición DELETE
+
 ~~~js
 const eliminarTarea = async (req,res)=>{
     const {id} = req.params 
@@ -377,6 +404,7 @@ const eliminarTarea = async (req,res)=>{
        const error = new Error("No tienes los permisos para acceder a la tarea")
        return res.status(403).json({msg: error.message})
     }
+   
     try {
         await tarea.deleteOne()
         res.json({msg: "Tarea eliminada"})
@@ -387,9 +415,10 @@ const eliminarTarea = async (req,res)=>{
 ~~~
 ----
 - Si ahora en POSTMAN voy al endpoint tareas/id_de_una_tarea con DELETE, borra dicha tarea
-- Cambiar estado es algo que los colaboradores si van a poder hacer , por lo que se hará más adelante
+- Cambiar estado es algo que los colaboradores si van a poder hacer, por lo que se hará más adelante
 ----
-# Obtener tareas
+## Obtener tareas
+
 - Listar las tareas de un proyecto puede estar en proyectoController pero tambien en tareaController
 - Tengo el endpoint de tareas/:id, este id es del proyecto
 - Monto el endpoint en POSTMAN
@@ -415,13 +444,16 @@ const obtenerTareas = async(req,res)=>{
     - Es correcto que cuando me traiga el proyecto me traiga también las tareas asociadas a ese proyecto
 ~~~js
 const obtenerProyecto=async(req,res)=>{
-    const {id} = req.params
-    const proyecto = await Proyecto.findById(id)
+   
+   const {id} = req.params
+   
+   const proyecto = await Proyecto.findById(id)
     
     if(!proyecto){
         const error= new Error("No encontrado")
         return res.status(404).json({msg: error.message})
     }
+    
     if(proyecto.creador.toString() !== req.usuario._id.toString()){
         const error = new Error("No tienes los permisos. Acción no válida")
         return res.status(401).json({msg: error.message})
